@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="css/mahjong.css">
+
+</head>
+<body>
+    
+    <div id="main" class="container">
+        
+        <div class="menu">
+            <button id="btn-clear" type="button" class="btn btn-primary pull-left">Clear</button>
+            <button id="btn-history" type="button" class="btn btn-primary pull-right">History</button>
+        </div>
+        <table id="table-main" class="table">
+            <tr id="players-main" class="table-header">
+                <td>P1</td>
+                <td>P2</td>
+                <td>P3</td>
+                <td>P4</td>
+                
+            </tr>
+            
+            <tr id="last-score">
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+            </tr>
+            
+            <tr id="total-points">
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+            </tr>
+            
+        </table>
+        
+        <!--<div class="container"> -->
+          <div class="btn-group-wrapper">  
+                <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-primary active">
+                        <input type="radio" class="winner" name="winner" id="win1" autocomplete="off" checked> P1
+                    </label>
+                    <label class="btn btn-primary">
+                        <input type="radio" class="winner" name="winner" id="win2" autocomplete="off"> P2
+                    </label>
+                    <label class="btn btn-primary">
+                        <input type="radio" class="winner" name="winner" id="win3" autocomplete="off"> P3
+                    </label>
+                    <label class="btn btn-primary">
+                        <input type="radio" class="winner" name="winner" id="win4" autocomplete="off"> P4
+                    </label>
+                </div>
+            </div>
+            <div class="btn-group-wrapper"> 
+                <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-primary active">
+                        <input type="radio" class="loser" name="loser" id="lose1" autocomplete="off" checked> P1
+                    </label>
+                    <label class="btn btn-primary">
+                        <input type="radio" class="loser" name="loser" id="lose2" autocomplete="off"> P2
+                    </label>
+                    <label class="btn btn-primary">
+                        <input type="radio" class="loser" name="loser" id="lose3" autocomplete="off"> P3
+                    </label>
+                    <label class="btn btn-primary">
+                        <input type="radio" class="loser" name="loser" id="lose4" autocomplete="off"> P4
+                    </label>
+                </div>
+            </div>
+            
+           
+            <!--<div class="score-label">0</div>-->
+            
+            <div class="inline-block-wrapper spaced">
+                <output for="score-slider" id="score-value" class="inline">5</output>
+            </div>
+            <div class="inline-block-wrapper">
+                <div id="slider-wrapper" class="inline">
+                    <input
+                        id="score-slider"
+                        type="range"
+                        min="1"                    // default 0
+                        max="10"                  // default 100
+                        step="1"                   // default 1
+                        value="5"                 // default min + (max-min)/2
+                        data-orientation="vertical" // default horizontal
+                        oninput="outputUpdate(value)"
+                    >
+                </div>
+            </div>
+            
+            <div class="inline-block-wrapper spaced">
+                <label id="cover-label" for="cover" class="inline">Cover</label>
+                <input
+                    id="cover"
+                    type="checkbox"
+                    class="inline"
+                >
+            </div>
+            <div class="inline-block-wrapper">
+                <button id="btn-submit" type="button" class="btn btn-primary">Submit</button>
+            </div>
+            
+            
+        <!--</div>-->
+    </div>
+    <div id="history" class="container hidden">
+        
+        <div class="menu">
+            <button id="btn-delete" type="button" class="btn btn-primary pull-left">Delete</button>
+            <button id="btn-back" type="button" class="btn btn-primary pull-right">Back</button>
+        </div>
+        
+        <table id="score-history" class="table">
+            
+            <tr id="players-history" class="table-header">
+                <td>P1</td>
+                <td>P2</td>
+                <td>P3</td>
+                <td>P4</td>
+            </tr>
+        </table>
+        
+    </div>
+    
+    <script src="js/MahjongCalc.js"></script>
+    <script>
+        function outputUpdate(val) {
+            document.querySelector('#score-value').value = val;
+        }
+    </script>
+    <script>
+        (function(){
+            document.getElementById('btn-history').onclick = showHistory;
+            document.getElementById('btn-back').onclick = showMain;
+            document.getElementById('btn-submit').onclick = submit;
+            document.getElementById('btn-clear').onclick = clearAll;
+            document.getElementById('btn-delete').onclick = deleteScore;
+            
+            document.onload = loadHistory();
+            
+            function showHistory() {
+                document.getElementById('main').classList.add('hidden');
+                document.getElementById('history').classList.remove('hidden');
+            }
+            
+            function showMain() {
+                document.getElementById('history').classList.add('hidden');
+                document.getElementById('main').classList.remove('hidden');
+            }
+            
+            function submit() {
+                
+                var winners = document.getElementsByClassName('winner');
+                var losers = document.getElementsByClassName('loser');
+                
+                var winner;
+                var loser;
+                
+                for (var i=0; i<4; i++) {
+                    if (winners[i].checked) {
+                        winner = i;
+                    }
+                    if (losers[i].checked) {
+                        loser = i;
+                    }
+                }
+                
+                var points = document.getElementById('score-value').value;
+                var cover = document.getElementById('cover').checked;
+                
+                // console.log('logging score: ' + winner + ' ' + loser + ' ' + points + ' ' + cover);
+                MahjongCalc.recordScore(winner,loser,points,cover, addScore);
+                
+                // updateDisplay();
+            }
+            
+            function updateScores(){
+                var lastScore = MahjongCalc.getLast();
+                var totalPoints = MahjongCalc.getScores();
+                
+                var lastScoreElements = document.getElementById('last-score').getElementsByTagName('TD');
+                var totalPointsElements = document.getElementById('total-points').getElementsByTagName('TD');
+                
+                for (var i =0; i<4; i++){
+                    if (lastScore) {
+                        lastScoreElements[i].innerHTML = lastScore[i];
+                    }
+                    else {
+                        lastScoreElements[i].innerHTML = '-';
+                    }
+                    totalPointsElements[i].innerHTML = totalPoints[i];
+                    
+                    
+                    totalPointsElements[i].classList.remove('positive');
+                    totalPointsElements[i].classList.remove('negative');
+                    if (totalPoints[i] > 0) {
+                        totalPointsElements[i].classList.add('positive');
+                    }
+                    else if (totalPoints[i] < 0) {
+                        totalPointsElements[i].classList.add('negative');
+                    }
+                }
+                
+            }
+            
+            function addScore(){
+                var lastScore = MahjongCalc.getLast();
+                
+                var scoreHistory = document.getElementById("score-history");
+                
+                var row = document.createElement('tr');
+                row.classList.add('score-history-row');
+                row.onclick = function(){                    
+                    var rows = document.getElementsByClassName('score-history-row');
+                    for (var i=0; i<rows.length; i++) {
+                        rows[i].classList.remove('selected-row');
+                    }
+                    this.classList.add('selected-row');
+                }
+                var col;
+                for (var i =0; i<4; i++){
+                    col = document.createElement('td');
+                    col.innerHTML = lastScore[i];
+                    row.appendChild(col);
+                }
+                scoreHistory.appendChild(row);
+                
+                updateScores();
+                updateCookie();
+            }
+            
+            function deleteScore(){
+                
+                var indexToDelete;
+                var scoreHistory = document.getElementById("score-history");
+                var rows = document.getElementsByClassName('score-history-row');
+                for (var i=0; i<rows.length; i++){
+                    if (rows[i].classList.contains('selected-row')) {
+                        indexToDelete = i;
+                    }
+                }
+                if (indexToDelete != undefined) {
+                    MahjongCalc.removeScoreAtIndex(indexToDelete, function(){
+                        scoreHistory.deleteRow(indexToDelete + 1);
+                    });
+                }
+                updateScores();
+                updateCookie();
+            }
+            
+            function clearAll() {
+                MahjongCalc.reset();
+                
+                var lastScoreElements = document.getElementById('last-score').getElementsByTagName('TD');
+                var totalPointsElements = document.getElementById('total-points').getElementsByTagName('TD');
+                
+                for (var i =0; i<4; i++){
+                    lastScoreElements[i].innerHTML = '-';
+                    totalPointsElements[i].innerHTML = 0;
+                    totalPointsElements[i].classList.remove('positive');
+                    totalPointsElements[i].classList.remove('negative');
+                }
+                
+                var scoreHistory = document.getElementById("score-history");   // Get the <ul> element with id="myList"
+                // var children = scoreHistory.childNodes;
+                while(scoreHistory.rows.length >= 2) {
+                    scoreHistory.deleteRow(scoreHistory.rows.length - 1);
+                }
+                
+                document.getElementById('cover').checked = false;
+                
+                clearCookie();
+            }
+            
+            function loadHistory(){
+                
+                checkCookie();
+                
+                var scoreHistoryLabels = MahjongCalc.getHistory();
+                var scoreHistory = document.getElementById("score-history");
+                for (var j=0; j<scoreHistoryLabels.length; j++){
+                    var row = document.createElement('tr');
+                    row.classList.add('score-history-row');
+                    row.onclick = function(){                    
+                        var rows = document.getElementsByClassName('score-history-row');
+                        for (var i=0; i<rows.length; i++) {
+                            rows[i].classList.remove('selected-row');
+                        }
+                        this.classList.add('selected-row');
+                    }
+                    var col;
+                    for (var i =0; i<4; i++){
+                        col = document.createElement('td');
+                        col.innerHTML = scoreHistoryLabels[j][i];
+                        row.appendChild(col);
+                    }
+                    scoreHistory.appendChild(row);
+                }
+                
+                updateScores();
+                
+            }
+            
+            function clearCookie(){
+                setCookie("historyLabel", "",30);
+                setCookie("historyScore", "", 30);
+            }
+            
+            function updateCookie(){
+                // var cookieJSON = MahjongCalc.getHistoryJSON();
+                // var cookieVal = JSON.stringify(cookieJSON);
+                // mysetCookie("historyJSON",cookieVal,365);
+                // console.log('cookieVal: ' + cookieVal);
+                
+                var cookieValLabelHistory = MahjongCalc.getSerialLabelHistory();
+                var cookieValHistory = MahjongCalc.getSerialHistory();
+                setCookie("historyLabel", cookieValLabelHistory,30);
+                setCookie("historyScore", cookieValHistory, 30);
+
+            }
+            
+            function setCookie(cname, cvalue, exdays) {
+                var d = new Date();
+                d.setTime(d.getTime() + (exdays*24*60*60*1000));
+                var expires = "expires="+d.toUTCString();
+                document.cookie = cname + "=" + cvalue + "; " + expires;
+            }
+            
+            function getCookie(cname) {
+                var name = cname + "=";
+                var ca = document.cookie.split(';');
+                for(var i=0; i<ca.length; i++) {
+                    var c = ca[i];
+                    while (c.charAt(0)==' ') c = c.substring(1);
+                    if (c.indexOf(name) == 0) return c.substring(name.length,c.length);
+                }
+                return "";
+            }
+            
+            function checkCookie(){
+                
+                var labelStr = getCookie("historyLabel");
+                var scoreStr = getCookie("historyScore");
+                
+                if (labelStr != "" && scoreStr != "") {
+                    MahjongCalc.loadSerialHistory(labelStr,scoreStr);
+                }
+            }
+        })();
+    </script>
+
+    <script src="js/jquery-2.2.0.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+</body>
+</html>

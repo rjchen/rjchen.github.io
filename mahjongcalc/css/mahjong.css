@@ -1,0 +1,126 @@
+html, body {
+    width:100%;
+}
+
+div {
+    max-width: 720px;
+}
+table {
+    table-layout:fixed;
+}
+table.edit{
+    table-layout: auto;
+}
+
+table td {
+    text-align: center;
+    border:none;
+    word-wrap: break-word;
+    width:25%;
+}
+
+td input{
+    width:100%;
+}
+
+tr:first-child {
+    border-bottom: 1px solid black;
+}
+
+.table {
+    margin-top:50px;
+}
+
+.table>tbody>tr>td {
+    border-top:none;
+}
+
+#score-value {
+    padding:0;
+    font-size: 20px;
+    width:25px;
+}
+
+#score-slider {
+    margin: 0;
+    margin-top:7px;
+}
+#slider-wrapper {
+    width: 80%;
+}
+
+.btn-group {
+    text-align: center;
+    width:100%;
+}
+
+.btn-group > label {
+    width:25%;
+    overflow: hidden; 
+}
+
+.container {
+    width:100%;
+}
+
+.btn-group-wrapper {
+    text-align: center;
+    position: relative;
+    margin: 5px 0;
+}
+
+.inline {
+    display: inline-block;
+}
+
+.inline-block-wrapper {
+    text-align: center;
+    vertical-align: middle;
+    margin-top: 10px;
+}
+
+.spaced {
+    margin-top:30px;
+}
+
+#btn-submit {
+    margin: 0 auto;
+}
+
+#cover-label {
+    margin-right:10px;
+    font-weight: 300;
+}
+
+#cover {
+    font-size:20px;
+}
+
+#rate {
+    width:50px;
+}
+
+#rate-enable {
+    margin-left:25px;
+    margin-right:8px;
+}
+
+.menu {
+    margin-top: 10px;
+}
+
+.selected-row {
+    background-color: lightgrey;
+}
+
+.score-history-row td{
+    padding:10px;
+}
+
+.positive {
+    color: limegreen;
+}
+
+.negative {
+    color: red;
+}

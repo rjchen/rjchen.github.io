@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="css/mahjong.css?v=006">
+
+    <script src="js/angular.min.js"></script>
+    <script src="js/angular-cookies.min.js"></script>
+</head>
+<body data-ng-app="MahjongCalcApp" data-ng-controller="MahjongCalc as ctrl" data-ng-cloak>
+    
+    <div id="main" class="container" ng-class="{hidden:ctrl.showHistory==true}">
+        
+        <div class="menu">
+            <button id="btn-clear" type="button" class="btn btn-primary pull-left" data-ng-click="ctrl.clear()">Clear</button>
+            <button id="btn-history" type="button" class="btn btn-primary pull-right" data-ng-click="ctrl.showHistory=true">History</button>
+            <div class="inline-block-wrapper">
+                <input
+                    id="rate-enable"
+                    type="checkbox"
+                    class="inline"
+                    data-ng-model="ctrl.showRate"
+                >
+                <span>Rate:</span>
+                <input
+                    id="rate"
+                    size="5"
+                    type="number"
+                    step="0.05"
+                    min="0"
+                    class="inline"
+                    data-ng-model="ctrl.rate"
+                >
+            </div>
+        </div>
+        <table id="table-main" class="table">
+            <tr id="players-main" class="table-header">
+                <td data-ng-click="ctrl.editPlayerLabel($index)" data-ng-repeat="x in ctrl.labelPlayers track by $index">
+                    <span data-ng-hide="ctrl.editPlayer[$index] == true">{{ctrl.labelPlayers[$index]}}</span>
+                    <input data-ng-model="ctrl.labelPlayers[$index]" type="text" data-ng-blur="ctrl.submitPlayerLabel($index)" data-ng-show="ctrl.editPlayer[$index] == true" data-auto-focus="{{ctrl.editPlayer[$index]}}">
+                </td>   
+            </tr>
+            
+            <tr id="last-score">
+                <td data-ng-bind="ctrl.labelHistory[ctrl.labelHistory.length-1][0] || '-'">-</td>
+                <td data-ng-bind="ctrl.labelHistory[ctrl.labelHistory.length-1][1] || '-'">-</td>
+                <td data-ng-bind="ctrl.labelHistory[ctrl.labelHistory.length-1][2] || '-'">-</td>
+                <td data-ng-bind="ctrl.labelHistory[ctrl.labelHistory.length-1][3] || '-'">-</td>
+            </tr>
+            
+            <tr id="total-points">
+                <td data-ng-bind="ctrl.totalPoints[0]" data-ng-class="{positive:ctrl.totalPoints[0]>0,negative:ctrl.totalPoints[0]<0}">0</td>
+                <td data-ng-bind="ctrl.totalPoints[1]" data-ng-class="{positive:ctrl.totalPoints[1]>0,negative:ctrl.totalPoints[1]<0}">0</td>
+                <td data-ng-bind="ctrl.totalPoints[2]" data-ng-class="{positive:ctrl.totalPoints[2]>0,negative:ctrl.totalPoints[2]<0}">0</td>
+                <td data-ng-bind="ctrl.totalPoints[3]" data-ng-class="{positive:ctrl.totalPoints[3]>0,negative:ctrl.totalPoints[3]<0}">0</td>
+            </tr>
+            
+            <tr id="total-value" data-ng-show="ctrl.showRate">
+                <td data-ng-bind="ctrl.totalPoints[0]*ctrl.rate | currency" data-ng-class="{positive:ctrl.totalPoints[0]>0,negative:ctrl.totalPoints[0]<0}">0</td>
+                <td data-ng-bind="ctrl.totalPoints[1]*ctrl.rate | currency" data-ng-class="{positive:ctrl.totalPoints[1]>0,negative:ctrl.totalPoints[1]<0}">0</td>
+                <td data-ng-bind="ctrl.totalPoints[2]*ctrl.rate | currency" data-ng-class="{positive:ctrl.totalPoints[2]>0,negative:ctrl.totalPoints[2]<0}">0</td>
+                <td data-ng-bind="ctrl.totalPoints[3]*ctrl.rate | currency" data-ng-class="{positive:ctrl.totalPoints[3]>0,negative:ctrl.totalPoints[3]<0}">0</td>
+            </tr>
+        </table>
+        
+        <!--<div class="container"> -->
+          <div class="btn-group-wrapper">  
+                <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-primary" data-ng-repeat="x in ctrl.labelPlayers" ng-class="{active: ctrl.winner == $index}">
+                            <input type="radio" class="winner" name="winner" data-ng-attr-id="{{'win' + ($index + 1)}}" autocomplete="off" checked data-ng-model="ctrl.winner" data-ng-value="$index"> {{x}}
+                    </label>
+                </div>
+            </div>
+            <div class="btn-group-wrapper"> 
+                <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-primary" data-ng-repeat="x in ctrl.labelPlayers" ng-class="{active: ctrl.loser == $index}">
+                        <input type="radio" class="loser" name="loser" data-ng-attr-id="{{'lose' + ($index + 1)}}" autocomplete="off" checked data-ng-model="ctrl.loser" data-ng-value="$index"> {{x}}
+                    </label>
+                </div>
+            </div>
+            
+            <div class="inline-block-wrapper spaced">
+                <div id="score-value" class="inline" data-ng-bind="ctrl.points">5</div>
+            </div>
+            <div class="inline-block-wrapper">    
+                <div id="slider-wrapper" class="inline">
+                    <input
+                        id="score-slider"
+                        type="range"
+                        min="1"                    // default 0
+                        max="10"                  // default 100
+                        step="1"                   // default 1
+                        value="5"                 // default min + (max-min)/2
+                        data-orientation="vertical" // default horizontal
+                        data-ng-model="ctrl.points"
+                    >
+                </div>
+            </div>
+            
+            <div class="inline-block-wrapper spaced">
+                <label id="cover-label" for="cover" class="inline">Cover</label>
+                <input
+                    id="cover"
+                    type="checkbox"
+                    class="inline"
+                    data-ng-model="ctrl.cover"
+                >
+            </div>
+            <div class="inline-block-wrapper">
+                <button id="btn-submit" type="button" class="btn btn-primary" data-ng-click="ctrl.recordScore()">Submit</button>
+            </div>
+            
+        <!--</div>-->
+    </div>
+    <div id="history" class="container hidden" ng-class="{hidden:ctrl.showHistory==false}">
+        
+        <div class="menu">
+            <button id="btn-delete" type="button" class="btn btn-primary pull-left" data-ng-click="ctrl.deleteRow()">Delete</button>
+            <button id="btn-back" type="button" class="btn btn-primary pull-right" data-ng-click="ctrl.showHistory=false">Back</button>
+        </div>
+        
+        <table id="score-history" class="table">
+            
+            <tr id="players-history" class="table-header">
+                <td data-ng-repeat="x in ctrl.labelPlayers" data-ng-bind="x"></td>
+            </tr>
+            
+            <tr class="score-history-row" data-ng-click="ctrl.selectedRow = $index" ng-class="{'selected-row':$index==ctrl.selectedRow}" data-ng-repeat="x in ctrl.labelHistory">
+                <td data-ng-bind="x[0]"></td>
+                <td data-ng-bind="x[1]"></td>
+                <td data-ng-bind="x[2]"></td>
+                <td data-ng-bind="x[3]"></td>
+            </tr>
+        </table>
+    </div>
+    
+    <script src="js/MahjongCalcApp.js?v=001"></script>
+</body>
+</html>
