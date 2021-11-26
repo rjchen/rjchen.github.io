@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<base href="/">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.0-rc.2/angular.min.js"></script>
+<style>
+
+td {
+    width:88px;
+    height:88px;
+    text-align: center;
+    vertical-align: middle;
+    text-transform: uppercase;
+    font-size: 65px;
+    border: 1px black solid;
+    padding:0;
+}
+
+span {
+    text-transform: uppercase;
+}
+
+table{
+    border-spacing: 2px;
+    margin-left:auto;
+    margin-right:auto;
+}
+
+table.correct, table.incorrect {
+    outline: 4px black solid;
+}
+table.correct {
+    outline-color: limegreen;
+}
+table.incorrect {
+    outline-color: red;
+}
+
+table.player-path {
+    border-spacing:8px;
+}
+
+.player-path td{
+    width:44px;
+    height:44px;
+    font-size:10px;
+}
+
+.player-path div {
+    width:44px;
+    height:44px;
+}
+
+.player-path img{
+    width:44px;
+    height:44px;
+}
+
+img {
+    /*position:absolute;*/
+    vertical-align: middle;
+}
+
+td.current {
+    outline:3px black solid;
+}
+
+div.container {
+    display: block;
+    text-align: center;
+    margin-left:auto;
+    margin-right:auto;
+}
+</style>
+</head>
+
+<body ng-app="gameApp" ng-controller="gameCtrl as ctrl" ng-keypress="ctrl.pressedKey($event.keyCode)">
+
+<div class="container" ng-show="!ctrl.gameOver">
+<h1>Player Turn: <span>{{ctrl.currentPlayer}}</span></h1>
+<h3>Time Remaining: {{ctrl.timeRemaining}}</h3>
+<button data-ng-click="ctrl.setPauseState()">{{ctrl.paused ? 'Resume' : 'Pause'}} </button>
+</div>
+
+<div class="container" ng-show="ctrl.gameOver">
+    <h1 ng-show="ctrl.gameOver">Game Over</h1>
+    <h3 ng-show="ctrl.gameOver">Player <span>{{ctrl.currentPlayer}}</span> Wins!</h3>
+</div>
+
+<br>
+
+<table class="board" ng-class="{correct:ctrl.correct,incorrect:ctrl.incorrect}">
+<tr><td ng-repeat="d in ctrl.boardData.slice(0,4)" data-ng-click="ctrl.panelClick($index)"><div ng-show="!d.showSymbol">{{d.letter}}</div><img ng-show="d.showSymbol" ng-src="images/{{d.symbol}}.png"></td></tr>
+<tr><td ng-repeat="d in ctrl.boardData.slice(4,8)" data-ng-click="ctrl.panelClick($index+4)"><div ng-show="!d.showSymbol">{{d.letter}}</div><img ng-show="d.showSymbol" ng-src="images/{{d.symbol}}.png"></td></tr>
+<tr><td ng-repeat="d in ctrl.boardData.slice(8,12)" data-ng-click="ctrl.panelClick($index+8)"><div ng-show="!d.showSymbol">{{d.letter}}</div><img ng-show="d.showSymbol" ng-src="images/{{d.symbol}}.png"></td></tr>
+<tr><td ng-repeat="d in ctrl.boardData.slice(12,16)" data-ng-click="ctrl.panelClick($index+12)"><div ng-show="!d.showSymbol">{{d.letter}}</div><img ng-show="d.showSymbol" ng-src="images/{{d.symbol}}.png"></td></tr>
+</table>
+
+<br>
+
+<div class="container">
+<button data-ng-click="ctrl.showAll(true)">Show All </button>
+<button data-ng-click="ctrl.showAll(false)">Hide All </button>
+</div>
+
+<br>
+
+<table class="player-path">
+<td data-ng-class="{'current':ctrl.playerData['p1'].pos==$index}" ng-repeat="d in ctrl.playerData['p1'].path track by $index"><img ng-src="images/{{d.symbol}}.png" ng-hide="d.destroyed"><div ng-show="d.destroyed"></div></td>
+</table>
+
+<table class="player-path">
+<tr><td data-ng-class="{'current':ctrl.playerData['p2'].pos==$index}" ng-repeat="d in ctrl.playerData['p2'].path track by $index"><img ng-src="images/{{d.symbol}}.png" ng-hide="d.destroyed"><div ng-show="d.destroyed"></div></td></tr>
+</table>
+    
+
+<script type="text/javascript">
+
+var app = angular.module("gameApp", []);
+
+app.config(['$locationProvider', function($locationProvider){
+    $locationProvider.html5Mode(true);    
+}]);
+
+app.controller("gameCtrl", ['$interval','$location',function($interval,$location){
+
+	this.test = "hello world";
+
+    var defaultPos = 6;
+
+    this.pressedKey = function(keyCode){
+        // console.log(keyCode);
+        
+        var key = String.fromCharCode(keyCode);
+
+        for (var i=0; i<this.boardData.length;i++){
+            if (key == this.boardData[i].letter){
+                this.panelClick(i);
+            }
+        }
+    }
+
+    this.restartTimeRemaining = function(){
+        if (this.tileRevealed){
+            this.timeRemaining = 4;
+        }
+        else {
+            this.timeRemaining = 60;
+        }
+    }
+    this.restartTimeRemaining();
+
+    this.paused = false;
+    this.setPauseState = function(){
+        this.paused = !this.paused;
+    }
+
+    var that = this;
+
+    $interval(function(){
+        if (that.timeRemaining > 0 && !that.paused){
+            that.timeRemaining --;
+
+            if (that.timeRemaining <= 0){
+                that.timedOut();
+            }
+        }
+    },1000);
+
+    this.timedOut = function(){
+        if (this.gameOver){
+            return;
+        }
+        if (this.tileRevealed){
+            if (this.incorrect) {
+                this.swapPlayers();
+            }
+            this.nextTurn();
+        }
+        else {
+            this.paused = true;
+            this.destroyTile();
+            this.swapPlayers();
+            this.restartTimeRemaining();
+        }
+    }
+    
+    this.nextTurn = function(){
+        if (this.gameOver){
+            return;
+        }
+        this.tileRevealed = false;
+        this.correct = false;
+        this.incorrect = false;
+        this.showAll(false);
+        this.restartTimeRemaining();
+    }
+
+    this.gameOver = false;
+    this.currentPlayer = "p1";
+
+    var letters = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
+
+    var letters2 = ['a','l','i','e','y','o','u','m','s','t','n','r','h','d','g','k'];
+
+    var symbols = [
+        "yellow1","yellow2","yellow3","yellow4",
+        "blue1","blue2","blue3","blue4",
+        "red1","red2","red3","red4",
+        "green1","green2","green3","green4",
+    ];
+
+    this.boardData = getDataArray();
+
+    this.playerData = {
+        p1:{
+            path:getPlayerPath(20),
+            pos:getPlayerStartingPos('p1'),
+            wrongCount:0,
+        },
+        p2:{
+            path:getPlayerPath(20),
+            pos:getPlayerStartingPos('p2'),
+            wrongCount:0,
+        }
+    }
+
+    this.panelClick = function(num){
+        if (this.tileRevealed){
+            if (!this.boardData[num].showSymbol){
+                return;
+            }
+        }
+        
+        this.boardData[num].showSymbol =  !this.boardData[num].showSymbol;
+
+        if (this.gameOver){
+            return;
+        }
+
+        var pData = this.playerData[this.currentPlayer];
+        //if showing, compare to current position
+        if (this.boardData[num].showSymbol){
+            this.tileRevealed = true;
+            this.restartTimeRemaining();
+            if (pData.path[pData.pos].symbol == this.boardData[num].symbol){
+                // console.log("match");
+                this.correct = true;
+                pData.pos ++;
+                if (pData.pos >= pData.path.length) {
+                    this.gameOver = true;
+                }
+            }
+            else {
+                this.incorrect = true;
+                this.destroyTile();
+            }
+        }
+        else {
+            if (this.correct){
+                this.swapPlayers();
+            }
+            this.nextTurn();
+        }
+    }
+
+    this.destroyTile = function(){
+        var pData = this.playerData[this.currentPlayer];
+
+        pData.path[pData.wrongCount].destroyed = true;
+                
+        if (pData.wrongCount == pData.pos){
+            this.swapPlayers();
+            this.gameOver = true;
+        }
+        else {
+            pData.wrongCount ++;
+        }
+    }
+
+    this.swapPlayers = function(){
+        if (this.currentPlayer == "p1"){
+            this.currentPlayer = "p2";
+        }
+        else {
+            this.currentPlayer = "p1";
+        }
+    }
+
+    this.getNum = function(num){
+        return new Array(num);
+    }
+
+    this.showAll = function(status){
+        if (status){
+            this.paused = true;
+        }
+        else {
+            this.paused = false;
+        }
+        for (var i=0; i<this.boardData.length; i++){
+            this.boardData[i].showSymbol = status;
+        }
+    }
+
+    function getPlayerStartingPos(player){
+        
+        var params = $location.search();
+        var pos = params.pos;
+        if (!pos){
+            pos = defaultPos; 
+        }
+        
+        if (player == 'p1'){
+            if (params.p1Pos){
+                pos = params.p1Pos;
+            }
+        }
+        if (player == 'p2'){
+            if (params.p2Pos){
+                pos = params.p2Pos;
+            }
+        }
+
+        return pos;
+    }
+
+    function getPlayerPath(len){
+        if (len > symbols.length * 2){
+            return;
+        }
+        var shuf_symbols = shuffle(symbols);
+        var shuf_symbols2 = shuffle(symbols);
+        var path_symbols = shuf_symbols.concat(shuf_symbols2.slice(0,4));
+
+        var arr = [];
+        for(var i=0; i<len; i++){
+            arr[i] = {
+                symbol:path_symbols[i],
+            }
+        }
+
+        return arr;
+    }
+
+    function getDataArray(){
+        var shuf_symbols = shuffle(symbols);
+        var shuf_letters = shuffle(letters);
+
+        var arr = [];
+
+        for (var i=0; i<16; i++){
+            arr[i] = {
+                symbol:shuf_symbols[i],
+                letter:shuf_letters[i],
+            }
+        }
+        return arr;
+
+    }
+
+
+    function shuffle(array) {
+        var currentIndex = array.length, temporaryValue, randomIndex;
+
+        // While there remain elements to shuffle...
+        while (0 !== currentIndex) {
+
+            // Pick a remaining element...
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex -= 1;
+
+            // And swap it with the current element.
+            temporaryValue = array[currentIndex];
+            array[currentIndex] = array[randomIndex];
+            array[randomIndex] = temporaryValue;
+        }
+
+        return array;
+    }
+
+}]);
+
+</script>
+
+</body>
+
+</html>
