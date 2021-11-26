@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Let's Play Freeze Dance!</title>
+  <style>
+  .container {
+    text-align: center;
+  }
+  .main {
+    display:none;
+  }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Let's Play Freeze Dance!</h1>
+    <h3 id="playerStatus">Loading...</h3>
+    <div class="main">
+      <h2>1) From Spotify, connect to device:</h2>
+      <h2><code id="playerId"></code></h2>
+      <h2>2) In Spotify, select playlist or song, then hit Play!</h2>
+      <br>
+      <br>
+      <h1 id="playingStatus">Press Play when Connected!</h1>
+      <button onclick="ResumeButtonPressed()">Play Game!</button>
+      <button onclick="PauseButtonPressed()">Pause Game</button>
+
+      
+    </div>
+
+  </div>
+  <script src="https://sdk.scdn.co/spotify-player.js"></script>
+  <!-- We will insert our code here. -->
+  <script>
+  var gameState = "paused";
+  var playerState = "paused";
+
+  var authToken = getParameterByName('access_token');
+  var playerToken;
+  if (authToken != null){
+      // console.log('authToken: ' + authToken);
+      playerToken = authToken;
+  }
+  else {
+      requestAuth();
+  }
+
+  function requestAuth(){
+    const requestURL = 'https://accounts.spotify.com/authorize';
+    var redirect_uri =  "https:%2F%2F"+document.location.hostname+"%2Ffreezedance.html";
+    if (document.location.hostname == "letsplayfreezedance.com"){
+      redirect_uri =  "https:%2F%2F"+document.location.hostname + "%2F";
+    }
+    if (document.location.hostname == "localhost") {
+      redirect_uri =  "http:%2F%2Flocalhost%2Ffreezedance.html";
+    }
+    
+    var params = "?client_id=44e7a5b98ee84194a951f0a3f377f377&response_type=token&redirect_uri="+ redirect_uri +"&scope=streaming%20user-read-birthdate%20user-read-email%20user-read-private";
+
+    console.log("requesting url...");
+    window.location.replace(requestURL+params);
+  }
+
+
+  var ResumeButtonPressed;
+  var PauseButtonPressed;
+  var OnGameTrigger;
+  var triggerTimer;
+
+  var playerReady = false;
+
+  window.onSpotifyWebPlaybackSDKReady = () => {
+    playerReady = true;
+    initPlayer();
+  };
+
+  function initPlayer() {
+    if (!playerReady){
+        console.log("player not ready to initialize");
+        return;
+    }
+    if (playerToken == null){
+        console.log("player token not available for init");
+        return;
+    }
+    // console.log("init player with token: " + playerToken);
+  
+    var token = authToken;
+    var playerName = 'Freeze Dance Player ' + getid(4);
+    const player = new Spotify.Player({
+        name: playerName,
+        getOAuthToken: cb => { cb(token); }
+    });
+    document.getElementById("playerId").innerHTML = playerName;
+
+    // Error handling
+    player.addListener('initialization_error', ({ message }) => { console.error(message); showErrorMsg();});
+    player.addListener('authentication_error', ({ message }) => { console.error(message); showErrorMsg();});
+    player.addListener('account_error', ({ message }) => { console.error(message); showErrorMsg();});
+    player.addListener('playback_error', ({ message }) => { console.error(message);});
+
+    // Playback status updates
+    player.addListener('player_state_changed', state => {
+      console.log(state);
+      if (state.paused){
+        document.getElementById('playingStatus').innerHTML="Freeze!";
+        playerState = "paused";
+        if (gameState == "paused"){
+          document.getElementById('playingStatus').innerHTML="Game is Paused. Press Play to continue!";
+        }
+      }
+      else {
+        document.getElementById('playingStatus').innerHTML="Dance!";
+        playerState = "playing";
+        if (gameState == "paused"){
+          gameState = "playing";
+          triggerTimer = setTimeout(GameTriggerTimer,10000);
+        }
+      }
+    });
+
+    // Ready
+    player.addListener('ready', ({ device_id }) => {
+        console.log('Ready with Device ID', device_id);
+        document.getElementById('playerStatus').innerHTML="Ready to Connect";
+        document.getElementsByClassName('main')[0].style.display="block";
+    });
+
+    // Not Ready
+    player.addListener('not_ready', ({ device_id }) => {
+        console.log('Device ID has gone offline', device_id);
+        showErrorMsg();
+    });
+
+    
+
+    // // Connect to the player!
+    player.connect().then(success => {
+      if (success) {
+        console.log('The Web Playback SDK successfully connected to Spotify!');
+        
+      }
+      else {
+        document.getElementById('playerStatus').innerHTML="Error loading. Please click <a href="+document.location.origin + document.location.pathname + ">here</a> to retry";
+      }
+    });
+
+    ResumeButtonPressed = function(){
+      if (gameState == "playing"){
+        return;
+      }
+
+      player.resume().then(() => {
+          console.log('Resumed!');
+      });
+    };
+
+    PauseButtonPressed = function(){
+        player.pause().then(() => {
+            console.log('Paused!');
+            gameState = "paused";
+            clearTimeout(triggerTimer);
+        });
+    };
+
+    OnGameTrigger = function(){
+      if (gameState == "paused"){
+        return;
+      }
+      player.togglePlay().then(() => {
+            console.log("Toggle triggered!");
+      });
+    }
+
+  }
+
+  function GameTriggerTimer(){
+    console.log("Game Trigger Timer Fired!");
+    if (gameState == "playing"){
+      var secs = 30;
+      if (playerState == "paused") {
+         secs = Math.floor((Math.random() * 20) + 2);
+      }
+      else if (playerState == "playing"){
+          secs = Math.floor((Math.random() * 7) + 2);
+      }
+
+      OnGameTrigger();
+      console.log("Next trigger in: " + secs);
+      triggerTimer = setTimeout(GameTriggerTimer,secs * 1000);
+    }
+  }
+
+  function showErrorMsg(){
+    document.getElementById('playerStatus').innerHTML="Couldn't load. Please click <a href="+document.location.origin + document.location.pathname + ">here</a> to retry";
+  }
+
+  function getParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, '\\$&');
+    var regex = new RegExp('[#?&]' + name + '(=([^&#]*)|&|#|$)'),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, ' '));
+  }
+
+  function getid(length) {
+    var text = "";
+    var possible = "BCDFGHJKLMNPQRSTVWXYZ";
+
+    for (var i = 0; i < length; i++)
+      text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+    return text;
+  }
+  
+  </script>
+</body>
+</html>
