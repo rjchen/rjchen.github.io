@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+    
+    <style>
+        
+        #main {
+            padding-top:20px;
+            display: absolute;
+            width:100%;
+        }
+       
+        table {
+            margin-top: 20px;
+        }
+        
+        .table-header {
+            font-weight: bold;
+            background-color: lightslategray;
+            color:white;
+        }
+        
+        td:first-child{
+            text-align:left;
+        }
+        
+        tr, td {
+            text-align: center;
+            padding-left:0;
+            padding-right:0;
+            height:34px;
+            max-height: 34px;
+            /*min-height: 40px;*/
+        }
+        
+        .tick-col {
+            max-width: 25px;
+        }
+        
+        .tick-mark {
+            color:black;
+        }
+        
+        .selected-row {
+            background-color: lightgray;
+        }
+        
+        .selected-row.active-row {
+            /*background-color: lightsteelblue;*/
+        }
+        
+        .bottom {
+            /*position:absolute;*/
+            bottom:34px;
+            
+        }
+        
+        .btn {
+            /*min-width:80px;*/
+        }
+        
+        .add-wrapper {
+            text-align: center;
+        }
+        
+        .tick-mark-added {    
+            color:black;
+            -webkit-animation: mark-added 1s ease-in; 
+            -moz-animation: mark-added 1s ease-in; 
+                -o-animation: mark-added 1s ease-in; 
+                    animation: mark-added 1s ease-in; 
+        }
+        
+        @-webkit-keyframes mark-added {
+            0%  { color: limegreen; }
+            100% { color: black; }
+        }
+        @-moz-keyframes mark-added {
+            0%  { color: limegreen; }
+            100% { color: black; }
+        }
+        @-o-keyframes mark-added {
+            0%  { color: limegreen; }
+            100% { color: black; }
+        }
+        @keyframes mark-added {
+            0%  { color: limegreen; }
+            100% { color: black; }
+        }
+        
+        .tick-mark-removed {
+            color:red;
+            -webkit-animation: mark-removed 1s ease-out; 
+            -moz-animation: mark-removed 1s ease-out; 
+                -o-animation: mark-removed 1s ease-out; 
+                    animation: mark-removed 1s ease-out; 
+        }
+        
+        @-webkit-keyframes mark-removed {
+            0%  { color: red; }
+            100% { color: white; }
+        }
+        @-moz-keyframes mark-removed {
+            0%  { color: red; }
+            100% { color: white; }
+        }
+        @-o-keyframes mark-removed {
+            0%  { color: red; }
+            100% { color: white; }
+        }
+        @keyframes mark-removed {
+            0%  { color: red; }
+            100% { color: white; }
+        }
+        
+    </style>
+
+    <script src="js/angular.min.js"></script>
+    <script src="js/angular-cookies.min.js"></script>
+</head>
+<body data-ng-app="ActivityLogger" data-ng-controller="ActivityCtrl as ctrl">
+    
+    <div id="main" class="container">
+        <div class="inline-block-wrapper">
+            <!--<button type="button" class="btn btn-primary inline" data-ng-click="ctrl.clear(false)">Clear</button>-->
+            <button type="button" class="btn btn-primary inline" data-ng-class="{'disabled':ctrl.locked}" data-ng-click="ctrl.clear(true)">Clear All</button>
+            <button type="button" class="btn btn-primary inline pull-right" data-ng-click="ctrl.toggleLock()" data-ng-bind="ctrl.locked ? 'Edit' : 'Lock'"></button>
+        </div>
+        
+        <table class="table table-bordered">
+            <tr class="table-header">
+                <td>Activity</td>
+                <td class="tick-col">S</td>
+                <td class="tick-col">M</td>
+                <td class="tick-col">T</td>
+                <td class="tick-col">W</td>
+                <td class="tick-col">T</td>
+                <td class="tick-col">F</td>
+                <td class="tick-col">S</td>
+            <tr data-ng-repeat="activity in ctrl.activities" data-ng-class="{'selected-row':$index==ctrl.selectedRow, 'active-row':!ctrl.locked}">
+                <td class="activity-name tick-mark-added" data-ng-bind="activity.name" data-ng-click="ctrl.selectRow($index)"></td>
+                <td class="tick-mark tick-col" data-ng-class="{'tick-mark-added':activity.log[0]==1, 'tick-mark-removed':activity.log[0]==-1}" data-ng-bind="activity.log[0] | tick" data-ng-click="ctrl.toggleMark($index,0)"></td>
+                <td class="tick-mark tick-col" data-ng-class="{'tick-mark-added':activity.log[1]==1, 'tick-mark-removed':activity.log[1]==-1}" data-ng-bind="activity.log[1] | tick" data-ng-click="ctrl.toggleMark($index,1)"></td>
+                <td class="tick-mark tick-col" data-ng-class="{'tick-mark-added':activity.log[2]==1, 'tick-mark-removed':activity.log[2]==-1}" data-ng-bind="activity.log[2] | tick" data-ng-click="ctrl.toggleMark($index,2)"></td>
+                <td class="tick-mark tick-col" data-ng-class="{'tick-mark-added':activity.log[3]==1, 'tick-mark-removed':activity.log[3]==-1}" data-ng-bind="activity.log[3] | tick" data-ng-click="ctrl.toggleMark($index,3)"></td>
+                <td class="tick-mark tick-col" data-ng-class="{'tick-mark-added':activity.log[4]==1, 'tick-mark-removed':activity.log[4]==-1}" data-ng-bind="activity.log[4] | tick" data-ng-click="ctrl.toggleMark($index,4)"></td>
+                <td class="tick-mark tick-col" data-ng-class="{'tick-mark-added':activity.log[5]==1, 'tick-mark-removed':activity.log[5]==-1}" data-ng-bind="activity.log[5] | tick" data-ng-click="ctrl.toggleMark($index,5)"></td>
+                <td class="tick-mark tick-col" data-ng-class="{'tick-mark-added':activity.log[6]==1, 'tick-mark-removed':activity.log[6]==-1}" data-ng-bind="activity.log[6] | tick" data-ng-click="ctrl.toggleMark($index,6)"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="tick-mark tick-col"></td>
+                <td class="tick-mark tick-col"></td>
+                <td class="tick-mark tick-col"></td>
+                <td class="tick-mark tick-col"></td>
+                <td class="tick-mark tick-col"></td>
+                <td class="tick-mark tick-col"></td>
+                <td class="tick-mark tick-col"></td>
+            </tr>
+        </table>
+        
+        <div class="inline-block-wrapper bottom">
+            <button type="button" class="btn btn-primary inline" data-ng-class="{'disabled':ctrl.locked}" data-ng-show="ctrl.selectedRow != null" data-ng-click="ctrl.delete()">Delete</button>
+            <div class="move-wrapper inline pull-right" data-ng-show="ctrl.selectedRow != null">
+                <button type="button" class="btn btn-primary inline" data-ng-class="{'disabled':ctrl.locked}" data-ng-click="ctrl.moveActivity(-1)" data-ng-show="ctrl.selectedRow != null">Up</button>
+                <button type="button" class="btn btn-primary inline" data-ng-class="{'disabled':ctrl.locked}" data-ng-click="ctrl.moveActivity(1)" data-ng-show="ctrl.selectedRow != null">Down</button>
+            </div>
+            <div class="add-wrapper inline" data-ng-show="ctrl.selectedRow == null">
+                <input class="inline" data-ng-model="ctrl.newName">
+                <button  type="button" class="btn btn-primary inline" data-ng-class="{'disabled':ctrl.locked}" data-ng-click="ctrl.addActivity()">Add</button>
+            </div>
+        </div>
+    </div>
+    
+    
+   
+<script>
+    
+    var app = angular.module('ActivityLogger',['ngCookies']);
+    
+    app.controller('ActivityCtrl',['$cookies','$timeout',function($cookies, $timeout){
+        this.activities = [];
+        this.selectedRow = null;
+        this.newName = "";
+        
+        this.locked = true;
+        
+        this.minRows = 1;
+        this.getNumber = function() {
+            if (this.activities.length >= this.minRows) {
+                return new Array(0);
+            }
+            else {
+                var num = this.minRows - this.activities.length;
+                return new Array(num);
+            }
+             
+        }
+        
+        this.addActivity = function(){
+            if (this.locked) {
+                return;
+            }
+            if (this.newName == "") {
+                return;
+            }
+            
+            var activity = {};
+            activity.name = this.newName;
+            activity.log = [0,0,0,0,0,0,0];
+            this.activities.push(activity);
+            
+            this.newName = "";
+            updateCookie();
+        }
+        
+        this.toggleMark = function(index,day) {
+           if (this.locked) {
+                return;
+           }
+           if (this.activities[index].log[day] == 1) {
+               this.activities[index].log[day] = -1;
+               var that = this;
+               $timeout(function(){
+                   that.activities[index].log[day] = 0;
+                   updateCookie();
+               },1000);
+           }
+           else if (this.activities[index].log[day] == 0) {
+               this.activities[index].log[day] = 1;
+               updateCookie();
+           }
+           
+        }
+        
+        this.clearMark = function(index,day) {
+            console.log('clearing index: ' + index + ', day: ' + day);
+            this.activities[index].log[day] = 0;
+            var val = this.activities[index].log[day];
+            console.log('value is: ' + val);
+        }
+        
+        this.delete = function() {
+            if (this.locked) {
+                return;
+            }
+            if (this.selectedRow == null) {
+                return;
+            }
+            this.activities.splice(this.selectedRow,1);
+            this.selectedRow = null;
+            updateCookie();
+        }
+        
+        this.clear = function(clearAll){
+            if (this.locked) {
+                return;
+            }
+            if (clearAll) {
+                for (var i=0; i<this.activities.length; i++){
+                    for (var j=0; j<7; j++) {
+                        this.activities[i].log[j] = 0;
+                    }
+                }
+            }
+            else {
+                for (var j=0; j<7; j++) {
+                    this.activities[this.selectedRow].log[j] = 0;
+                }
+            }
+            updateCookie();
+        }
+        
+        this.selectRow = function(index){
+            if (index == this.selectedRow) {
+                this.selectedRow = null;
+            }
+            else {
+                this.selectedRow = index;
+            }
+        }
+        
+        this.toggleLock = function(){
+            this.locked = !this.locked;
+        }
+        
+        this.moveActivity = function(direction){
+            if (this.locked) {
+                return;
+            }
+            if ((direction == -1 && this.selectedRow > 0) || (direction == 1 && this.selectedRow < this.activities.length-1)) {
+                var x = this.activities[this.selectedRow];
+                this.activities[this.selectedRow] = this.activities[this.selectedRow + direction];
+                this.activities[this.selectedRow + direction] = x;
+                this.selectedRow = this.selectedRow + direction;
+                updateCookie();   
+            }
+        }
+        
+        
+        var self = this;
+        
+        loadCookie();
+        
+        function loadCookie() {
+            var logStr = $cookies.get('activityLog');
+            
+            if ((logStr != undefined) && (logStr != "")) {
+                loadHistory();
+            }
+            
+            function loadHistory() {
+                var logArr = logStr.split(",");
+                for (var i=0; i<logArr.length; i=i+8){
+                    var activity = {}
+                    activity.name = logArr[i];
+                    activity.log = [];
+                    for (var j=1; j<=7; j++) {
+                        activity.log[j-1] = parseInt(logArr[i+j]);
+                    }
+                    self.activities.push(activity);
+                }
+            }
+        }
+        
+        function updateCookie() {
+            
+            var logStr = "";
+            for (var i=0; i<self.activities.length; i++){
+                if (logStr != "") {
+                    logStr = logStr + "," + self.activities[i].name;
+                }
+                else {
+                    logStr = self.activities[i].name;
+                }
+                for (var j=0; j<7; j++) {
+                    logStr = logStr + "," + self.activities[i].log[j];
+                }
+            }
+                
+                
+
+		    var d = new Date();
+        	d.setTime(d.getTime() + (365*24*60*60*1000)); // expires after 1 year
+        	var expires = "expires="+d.toUTCString();
+
+            $cookies.put("activityLog",logStr,{'expires':expires});  
+        }
+        
+   }]);
+        
+    app.filter('tick', function () {
+        return function(input) {
+                return (input != 0) ? 'x' : '';
+        };
+    });    
+        
+    
+
+</script>
+</body>
+</html>
