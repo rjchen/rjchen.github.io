@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<base href="/">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.0-rc.2/angular.min.js"></script>
+<style>
+
+table {
+    border-spacing:10px;
+}
+
+table.master {
+    /*width:100%;*/
+}
+
+.master td{
+    /*width:33%;*/
+    vertical-align:top;
+    text-align:center;
+}
+
+.master td.left, .master td.right {
+    width:100px;
+}
+
+.master td.right {
+    text-align:left;
+}
+
+table.gameboard.active {
+    outline: 3px solid lightgrey;
+}
+
+table.gameboard.correct {
+    outline: 4px solid limegreen;
+}
+
+table.gameboard.incorrect {
+    outline: 4px solid red;
+}
+
+
+
+.gameboard td {
+    width:88px;
+    height:88px;
+    position:relative;
+}
+
+td.selected {
+    outline: 4px solid #E9B72A;
+}
+
+table.score {
+    width:100%;
+}
+.score td{
+    width: 44px;
+    height:44px;
+    /*border: 1px solid black;*/
+    text-align: center;
+    vertical-align:middle;
+    font-size:30px;
+    position:relative;
+}
+
+.label {
+    position:absolute;
+    top:-2px;
+    left:-2px;
+
+    background-color:#47302F;
+    color:white;
+    border: 1px solid black;
+
+    width:16px;
+    height:16px;
+
+    text-align:center;
+    vertical-align: middle;
+}
+
+.tile {
+    width:88px;
+    height:88px;
+    border: 1px solid dimgrey;
+}
+
+.bg-0 {
+    background-color: black;
+}
+.bg-1 {
+    background-color: grey;
+}
+.bg-2{
+    background-color:white;
+}
+
+.fg-0 {
+    background-color: #3879C7;
+    border-color: transparent transparent #3879C7 transparent;
+}
+.fg-1 {
+    background-color: #A6303D;
+    border-color: transparent transparent #A6303D transparent;
+}
+.fg-2{
+    background-color: #E9B72A;
+    border-color: transparent transparent #E9B72A transparent;
+}
+
+.shape {
+    width:50px;
+    height:50px;
+    margin:19px auto;
+}
+
+.shape-1{
+    border-radius: 50%;
+}
+
+.shape-2{
+    background:none;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 30px 50px 30px;
+}
+
+.options {
+    font-size:14px;
+}
+
+.container {
+    text-align:center;
+    margin-left:auto;
+    margin-right:auto;
+}
+
+</style>
+</head>
+<body ng-app="gameApp" ng-controller="gameCtrl as ctrl" ng-keypress="ctrl.pressedKey($event.keyCode)">
+<div class="container">Time Remaining: {{ctrl.timeRemaining}}</div>
+<table class="master container">
+    <tr>
+        <td class="left">
+            <table>
+                <tr><td>Round {{ctrl.roundNum}}</td></tr>
+                <tr ng-repeat="d in ctrl.successfulHaps"><td>{{d}}</td></tr>
+            </table>
+        </td>
+        <td class="middle">
+            <table class="gameboard" ng-class="{correct:ctrl.correct,incorrect:ctrl.incorrect,active:ctrl.hapInput}">
+                <tr><td ng-repeat="d in ctrl.boardData.slice(0,3)" ng-class="{selected:ctrl.selectedTiles[$index]}"><tile tile-data="d"></tile><div class="label">{{$index+1}}</div></td></tr>
+                <tr><td ng-repeat="d in ctrl.boardData.slice(3,6)" ng-class="{selected:ctrl.selectedTiles[$index+3]}"><tile tile-data="d"></tile><div class="label">{{$index+4}}</div></td></tr>
+                <tr><td ng-repeat="d in ctrl.boardData.slice(6,9)" ng-class="{selected:ctrl.selectedTiles[$index+6]}"><tile tile-data="d"></tile><div class="label">{{$index+7}}</div></td></tr>
+            </table>
+
+            <br>
+            <div class="container" ng-show="ctrl.successfulHaps.includes('Gyul!')">
+                <button ng-click="ctrl.nextRoundButtonPressed()">Next Round</button>
+            </div>
+
+            <table class="score">
+                <tr>
+                    <td ng-class="{selected:ctrl.currentPlayer == 'P1'}">P1: {{ctrl.score.P1}}</td>
+                    <td ng-class="{selected:ctrl.currentPlayer == 'P2'}">P2: {{ctrl.score.P2}}</td>
+                </tr>
+            </table>
+            
+        </td>
+        <td class="right">
+        </td>
+    </tr>
+</table>
+<br>
+<br>
+<div class="container">
+    <div class="options">
+        <input type="checkbox" ng-model="ctrl.takeTurns">Alternate Turns Game Mode
+        <br><br>
+        <input type="checkbox" ng-model="ctrl.showCount">Remaining Hap Count
+        <input type="checkbox" ng-model="ctrl.showDebug">Remaining Hap List
+    </div>
+    <br>
+
+    <div class="" ng-show="ctrl.showCount || ctrl.showDebug">
+        Haps Remaining: <span ng-show="ctrl.showCount">{{ctrl.validHaps.length}}</span>
+        <br>
+    </div>
+    <div class="" ng-show="ctrl.showDebug">
+        
+        <div ng-repeat="hap in ctrl.validHaps">
+            {{hap}}
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+var app = angular.module('gameApp',[]);
+
+app.directive('tile',function(){
+    return {
+        restrict: 'E',
+        scope:{
+            tileData:'=',
+        },
+        template: function(){
+            return "<div class="+ '"' + "tile {{'bg-'+tileData.bg}}" + '"' + ">" + 
+                "<div class=" + '"' + "shape {{'shape-'+tileData.shape}} {{'fg-'+tileData.fg}}" + '"' + "></div>" +
+            "</div>";
+        }(),
+        replace:true,
+    }
+})
+
+app.controller('gameCtrl',['$interval','$timeout',function($interval,$timeout){
+    var audio = new Audio('effects/Ding.wav');
+
+    this.roundNum = 1;
+    this.tileSelection;
+    this.correct;
+    this.incorrect;
+    this.showCount = false;
+    this.takeTurns = true;
+    this.boardData = getNewBoardData();
+
+    this.score = {
+        P1:0,
+        P2:0,
+    }
+
+    this.nextRoundButtonPressed = function(){
+        var that = this;
+        this.timeRemaining = 3;
+        var nextroundinterval = $interval(function(){
+            that.timeRemaining --;
+            if (that.timeRemaining <= 0){
+                nextRound(that);
+                $interval.cancel(nextroundinterval);
+            }
+        },1000);
+    }
+
+    function nextRound(that){
+        that.roundNum ++;
+        that.boardData = getNewBoardData();
+        that.successfulHaps = [];
+        that.validHaps = getHaps(that.boardData);
+    }
+
+    this.successfulHaps = [];
+    this.validHaps = getHaps(this.boardData);
+
+    this.inputSeq = [];
+
+    this.selectedTiles = [false,false,false,false,false,false,false,false,false];
+
+    this.checkHap = function(val){
+        var arr = val.split("");
+        arr.sort();
+        var sortVal = arr.join("");
+        if (this.validHaps.includes(sortVal)){
+            var index = this.validHaps.indexOf(sortVal);
+            this.validHaps.splice(index,1);
+            // console.log(val + " is TRUE");
+            return true;
+        }
+        else {
+            // console.log(val + " is FALSE");
+            return false;
+        }
+    }
+
+    this.checkGyul = function(){
+        return (this.validHaps.length == 0);
+    }
+
+    this.pressedKey = function(keyCode){
+        var key = String.fromCharCode(keyCode);
+        // console.log("keypress: " + key + ", with code: " + keyCode);
+        if (this.hapInput){
+            if (!(keyCode >= 49 && keyCode<=57)){
+                return;
+            }
+
+            this.selectHapValue(parseInt(key));
+
+        }
+        else {
+            if (this.successfulHaps.includes('Gyul!')){
+                return;
+            }
+
+            if (key == 'a'){
+                this.Hap('P1');
+            }
+            if (key == 'j'){
+                this.Hap('P2');
+            }
+            if (key == 's'){
+                this.Gyul('P1');
+            }
+            if (key == 'k'){
+                this.Gyul('P2');
+            }
+        }
+    }
+
+    this.selectHapValue = function(val){
+        this.inputSeq.push(val);
+
+        //light-up box
+        this.selectedTiles[val-1] = true;
+
+        if (this.inputSeq.length >=3){
+            var result = this.checkHap(this.inputSeq.join(""));
+
+            //process result
+            if (result){
+                this.successfulHaps.push(this.inputSeq.join(" "))
+                this.correct = true;
+                this.score[this.currentPlayer] ++;
+                audio.play();
+            }
+            else {
+                this.incorrect = true;
+                this.score[this.currentPlayer] --;
+            }
+            console.log(this.currentPlayer + " Hap! " + this.inputSeq + " is " + result);
+            
+            this.inputSeq.splice(0);
+            this.hapInput = false;
+            this.currentPlayer = null;
+
+            resetStatus(this);
+            
+        }
+    }
+
+    this.Hap = function(player){
+        this.currentPlayer = player;
+        this.hapInput = true;
+
+        if (this.countdownTimer != null){
+            $interval.cancel(this.countdownTimer);
+        }
+
+        if (this.resetTimer != null){
+            $timeout.cancel(this.resetTimer);
+        }
+        for (var i=0; i<this.selectedTiles.length; i ++){
+            this.selectedTiles[i] = false;
+        }
+        this.correct = false;
+        this.incorrect = false;
+
+        this.startTimer();
+    }
+
+    this.countdownTimer;
+    this.timeRemaining;
+    this.startTimer = function(){
+        var that = this;
+        this.timeRemaining = 5;
+        this.countdownTimer = $interval(function(){
+            if (that.timeRemaining > 0){
+                that.timeRemaining --;
+                if (that.timeRemaining <= 0){
+                    that.timedOut();
+                }
+            }
+        },1000);
+    }
+
+    this.timedOut = function(){
+        this.score[this.currentPlayer] --;
+
+        this.inputSeq.splice(0);
+        this.hapInput = false;
+        this.currentPlayer = null;
+
+        resetStatus(this);
+    }
+
+    this.Gyul = function(player){ 
+        var result = this.checkGyul();
+        if (result) {
+            if (this.successfulHaps.includes("Gyul!")){
+                return;
+            }
+            this.successfulHaps.push("Gyul!");
+            this.score[player] += 3;
+            this.correct = true;
+            audio.play();
+        }
+        else {
+            this.score[player] -= 3;
+            this.incorrect = true;
+        }
+        resetStatus(this);
+        console.log(player + " Gyul! is " + result);
+    }
+
+    this.resetTimer;
+    function resetStatus(that){
+        if (that.countdownTimer != null){
+            $interval.cancel(that.countdownTimer);
+        }
+        that.timeRemaining = null;
+
+        that.resetTimer = $timeout(function(){
+            for (var i=0; i<that.selectedTiles.length; i ++){
+                that.selectedTiles[i] = false;
+            }
+            that.correct = false;
+            that.incorrect = false;
+        },2000);
+
+    }
+    
+    function checkHap(boardData,val){
+        var shapeTot = 0;
+        var bgTot = 0;
+        var fgTot = 0;
+        for (var i=0; i<3; i++){
+            shapeTot = shapeTot + boardData[val[i]].shape;
+            bgTot = bgTot + boardData[val[i]].bg; 
+            fgTot = fgTot + boardData[val[i]].fg;    
+        }
+
+        var result = 
+            (shapeTot == 0 || shapeTot == 3 || shapeTot == 6) &&
+            (bgTot == 0 || bgTot == 3 || bgTot == 6) &&
+            (fgTot == 0 || fgTot == 3 || fgTot == 6);
+
+        return result;
+    }
+
+    // gets all haps by sorted indexes
+    function getHaps(boardData){
+        var result = [];
+        for (var i=0; i<boardData.length-2; i++) {
+
+            for (var j=i+1; j<boardData.length-1; j++){
+
+                for (var k=j+1; k<boardData.length; k++){
+                    var val = [i,j,k].join("");
+                    if (checkHap(boardData,val)){
+                        // push the tile refs, not array indexes to results
+                        result.push([i+1,j+1,k+1].join(""));
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    function getNewBoardData(){
+        var numHaps = getRandomNum(0,12);
+        if (numHaps > 6 && numHaps != 8 && numHaps != 12 ){
+            numHaps = getRandomNum(1,7);
+        }
+        var arr = initBoardData();
+        while(getHaps(arr).length != numHaps){
+            arr = initBoardData();
+        }
+        return arr;
+    }
+
+    function initBoardData(){
+        var arr = [];
+        var arrStr = [];
+        var tile;
+        var tileStr;
+        for (var i=0; i<9; i++){
+            tile = {
+                shape: getRandomNum(0,3),
+                bg: getRandomNum(0,3),
+                fg: getRandomNum(0,3),
+            };
+            tileStr = JSON.stringify(tile);
+            if (!arrStr.includes(tileStr)){
+                arr.push(tile);
+                arrStr.push(tileStr);
+            }
+            else {
+                i --;
+            }
+        }
+        return arr;
+    }
+
+    // non-inclusive max
+    function getRandomNum(min, max) {
+        return Math.floor(Math.random() * (max - min)) + min;
+    }
+
+}]);
+
+</script>
+
+</body>
+</html>
